@@ -59,45 +59,18 @@ namespace FullJoin
             if (resultSelector == null) throw new ArgumentNullException(nameof(resultSelector));
 
             var hashset = new HashSet<Pair<TFirst, TSecond>>();
+
             var firstLookup = first.ToLookup(firstKeySelector);
             var secondLookup = second.ToLookup(secondKeySelector);
 
-            // INNER JOIN
             foreach (var firstGroup in firstLookup)
             {
                 foreach (var firstItem in firstGroup)
                 {
-                    if (secondLookup.Contains(firstGroup.Key) == true)
-                    {
-                        foreach (var secondItem in secondLookup[firstGroup.Key])
-                        {
-                            hashset.Add(new Pair<TFirst, TSecond>(firstItem, secondItem));
-                        }
-                    }
+                    hashset.Add(new Pair<TFirst, TSecond>(firstItem, secondLookup[firstGroup.Key].FirstOrDefault()));
                 }
             }
-            // LEFT JOIN with NULL
-            foreach (var firstGroup in firstLookup)
-            {
-                foreach (var firstItem in firstGroup)
-                {
-                    if (secondLookup.Contains(firstGroup.Key) == false)
-                    {
-                        hashset.Add(new Pair<TFirst, TSecond>(firstItem, default(TSecond)));
-                    }
-                }
-            }
-            // RIGHT JOIN with NULL
-            foreach (var secondGroup in secondLookup)
-            {
-                foreach (var secondItem in secondGroup)
-                {
-                    if (firstLookup.Contains(secondGroup.Key) == false)
-                    {
-                        hashset.Add(new Pair<TFirst, TSecond>(default(TFirst), secondItem));
-                    }
-                }
-            }
+
             int counter = 0;
             foreach (var item in hashset)
             {
