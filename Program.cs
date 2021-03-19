@@ -59,7 +59,6 @@ namespace FullJoin
             if (resultSelector == null) throw new ArgumentNullException(nameof(resultSelector));
 
             var hashset = new HashSet<Pair<TFirst, TSecond>>();
-
             var firstLookup = first.ToLookup(firstKeySelector);
             var secondLookup = second.ToLookup(secondKeySelector);
 
@@ -72,10 +71,7 @@ namespace FullJoin
             }
 
             int counter = 0;
-            foreach (var item in hashset)
-            {
-                yield return resultSelector(++counter, item.First, item.Second);
-            }
+            return hashset.Select(x => resultSelector(++counter, x.First, x.Second));
         }
     }
 }
