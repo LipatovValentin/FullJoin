@@ -46,17 +46,6 @@ namespace FullJoin
 
     public static class Helper
     {
-        private struct Pair<TFirst, TSecond>
-        {
-            public TFirst First { get; set; }
-            public TSecond Second { get; set; }
-            public Pair(TFirst first, TSecond second)
-            {
-                First = first;
-                Second = second;
-            }
-        }
-
         public static IEnumerable<TResult> FullOuterJoin<TFirst, TSecond, TKey, TResult>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second, Func<TFirst, TKey> firstKeySelector, Func<TSecond, TKey> secondKeySelector, Func<int, TFirst, TSecond, TResult> resultSelector)
         {
             if (first == null) throw new ArgumentNullException(nameof(first));
@@ -66,33 +55,32 @@ namespace FullJoin
             if (resultSelector == null) throw new ArgumentNullException(nameof(resultSelector));
             
             int counter = 0;
-            var hashset = new HashSet<Pair<TFirst, TSecond>>();
             var firstLookup = first.ToLookup(firstKeySelector);
             var secondLookup = second.ToLookup(secondKeySelector);
 
-            foreach (var secondItem in second)
+            foreach (var firstItem in first)
             {
-                foreach (var firstItem in first)
+                var secondItems = secondLookup[firstKeySelector(firstItem)].AsEnumerable<TSecond>().GetEnumerator();
+                if (secondItems.MoveNext())
                 {
-                    if (firstLookup.Contains(secondKeySelector(secondItem)) == true)
+                    do
                     {
-                        if (firstKeySelector(firstItem).Equals(secondKeySelector(secondItem)))
-                        {
-                            hashset.Add(new Pair<TFirst, TSecond>(firstItem, secondItem));
-                        }
+                        yield return resultSelector(++counter, firstItem, secondItems.Current);
                     }
-                    else
-                    {
-                        if (secondLookup.Contains(firstKeySelector(firstItem)) == false)
-                        {
-                            hashset.Add(new Pair<TFirst, TSecond>(firstItem, default(TSecond)));
-                        }
-                        hashset.Add(new Pair<TFirst, TSecond>(default(TFirst), secondItem));
-                    }
+                    while (secondItems.MoveNext());
+                }
+                else
+                {
+                    yield return resultSelector(++counter, firstItem, default(TSecond));
                 }
             }
-
-            return hashset.Select(x => resultSelector(++counter, x.First, x.Second));
+            foreach (var secondItem in second)
+            {
+                if (firstLookup.Contains(secondKeySelector(secondItem)) == false)
+                {
+                    yield return resultSelector(++counter, default(TFirst), secondItem);
+                }
+            }
         }
     }
 }
